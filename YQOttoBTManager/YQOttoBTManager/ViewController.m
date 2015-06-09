@@ -49,7 +49,7 @@
     [self.manager stopScanDevices];
 }
 
-- (IBAction)restoreFactory:(id)sender {
+- (IBAction)getData:(id)sender {
 //    [self.manager RestoreFactory];
     [self.manager setPetNameWithName:@"PingPing"];
     [self.manager setMastNameWithName:@"yyq Yearn"];
@@ -73,10 +73,10 @@
 {
     self.deviceID = identifier;
 }
-//- (void)ottoBTManager:(YQOttoBTManager *)manager getSteps:(int)steps intensity:(int)intensity fromDate:(NSDate *)date
-//{
-//    NSLog(@"客户端获得数据：date = %@, steps = %i , intensity = %i",date,steps,intensity);
-//}
+- (void)ottoBTManager:(YQOttoBTManager *)manager getSteps:(int)steps intensity:(int)intensity fromDate:(NSDate *)date
+{
+    NSLog(@"客户端获得数据：date = %@, steps = %i , intensity = %i",date,steps,intensity);
+}
 - (void)ottoBTManager:(YQOttoBTManager *)manager totalDataWithTotalSteps:(int)totalSteps totalIntensity:(int)totalIntensity date:(NSDate *)date
 {
     NSLog(@"客户端获得信息，今天是%@ ，totalSteps = %i , totalIntensity = %i ",date,totalSteps,totalIntensity);

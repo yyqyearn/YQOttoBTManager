@@ -90,12 +90,6 @@
  *  当天数据
  */
 - (void)getStepsToday;
-
-/**
- *  删除运动数据
- */
-- (void)deleteDataWithDate:(NSDate*)date;
-
 @end
 
 @protocol YQOttoBTManagerDelegate <NSObject>

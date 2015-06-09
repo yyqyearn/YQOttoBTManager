@@ -21,9 +21,6 @@
         [scanner scanHexInt:&intValue];
         [data appendBytes:&intValue length:1];
     }
-       NSString *sendBy = [[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding];
-    
-    NSLog(@"发送的2进制为%@ ,data = %@",sendBy,data);
     return data;
 }
 //将传入的NSData类型转换成NSString并返回
