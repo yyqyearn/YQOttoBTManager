@@ -21,6 +21,9 @@
         [scanner scanHexInt:&intValue];
         [data appendBytes:&intValue length:1];
     }
+       NSString *sendBy = [[NSString alloc]initWithData:data encoding:NSUTF8StringEncoding];
+    
+//    NSLog(@"发送的2进制为%@ ,data = %@",sendBy,data);
     return data;
 }
 //将传入的NSData类型转换成NSString并返回
@@ -168,7 +171,8 @@
 
 + (NSString*)string16WithDate:(NSDate*)date
 {
-    NSString * string = [NSString stringWithFormat:@"20%02lx",(unsigned long)date.year-2000];
+    
+    NSString * string = [NSString stringWithFormat:@"0%02lx",(unsigned long)date.year];
     string =  [string stringByAppendingString:[NSString stringWithFormat:@"%02lx",(unsigned long)date.month]];
     string =  [string stringByAppendingString:[NSString stringWithFormat:@"%02lx",(unsigned long)date.day]];
     string =  [string stringByAppendingString:[NSString stringWithFormat:@"%02lx",(unsigned long)date.weekday]];
@@ -183,7 +187,7 @@
 
 + (NSString*)stringDay16WithDate:(NSDate*)date
 {
-    NSString * string = [NSString stringWithFormat:@"20%02lx",(unsigned long)date.year-2000];
+    NSString * string = [NSString stringWithFormat:@"0%02lx",(unsigned long)date.year];
     string =  [string stringByAppendingString:[NSString stringWithFormat:@"%02lx",(unsigned long)date.month]];
     string =  [string stringByAppendingString:[NSString stringWithFormat:@"%02lx",(unsigned long)date.day]];
     //    NSLog(@"sysZOne = %li, TZ = %ld",timezone,(long)timeZone.secondsFromGMT);
@@ -210,9 +214,9 @@
         NSLog(@"日期格式错误");
         return nil;
     }
-    NSString *yearHex =[dateStr substringWithRange:NSMakeRange(2, 2)];
+    NSString *yearHex =[dateStr substringWithRange:NSMakeRange(0, 4)];
     //    yearHex = yearHex //[NSDate stringFromHexString:yearHex];
-    NSUInteger year = 2000+strtoul([yearHex UTF8String],0,16);
+    NSUInteger year = strtoul([yearHex UTF8String],0,16);
     //    -(NSInteger *)hex:(UITextField *)textField3
     //    {
     //
@@ -302,12 +306,12 @@
 
 + (NSDate*)dateWithHexDate:(NSString*)hexDateStr{
     
-    //    200f 011c
-    NSString * yearHS = [hexDateStr substringWithRange:NSMakeRange(2, 2)];
+
+    NSString * yearHS = [hexDateStr substringWithRange:NSMakeRange(0, 4)];
     NSString * monthHS = [hexDateStr substringWithRange:NSMakeRange(4, 2)];
     NSString * dayHS = [hexDateStr substringWithRange:NSMakeRange(6, 2)];
     
-    NSInteger year = 2000 + (int)strtoul([yearHS UTF8String],0,16);
+    NSInteger year = (int)strtoul([yearHS UTF8String],0,16);
     NSInteger month = (int)strtoul([monthHS UTF8String],0,16);
     NSInteger day = (int)strtoul([dayHS UTF8String],0,16);
     

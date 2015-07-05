@@ -26,6 +26,7 @@ static NSString *kCodeStr_SetPetName = @"BE010EFE01";
 static NSString *kCodeStr_SetMasterName = @"BE0112FE";
 static NSString *kCodeStr_SetPhoneNumber = @"BE0113FE";
 static NSString *kCodeStr_GetStepsH = @"BE0201FE";
+static NSString *kCodeStr_GetStepsT = @"BE0203FE";
 
 /** 返回指令集 **/
 static NSString *kReturnStr_Set12Hours = @"de0101ed";
@@ -37,7 +38,7 @@ static NSString *kReturnStr_SetPetName = @"de010eed";
 static NSString *kReturnStr_SetMasterName = @"de0112ed";
 static NSString *kReturnStr_SetPhoneNumber = @"de0113ed";
 
-static NSString *kReturnStr_GetTodayStepsStart = @"20";
+static NSString *kReturnStr_GetTodayStepsStart = @"de0201fe";
 static NSString *kReturnStr_GetStepsH = @"de0201ed";
 static NSString *kReturnStr_GetNoStepsH = @"de020106";
 
@@ -93,7 +94,6 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
         manager.PeripheralsFound = [NSMutableArray array];
         [manager setupVersionAndArrays];
     });
-    
     return manager;
 }
 /**
@@ -129,6 +129,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
         YYQLog(@"没有连接到设备，设置个毛啊， =,=!!");
     }
 }
+
 - (void)scanTimeout:(NSTimer*)timer{
     [timer invalidate];
     self.timer = nil;
@@ -147,7 +148,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
             }
             [self.delegate ottoBTManager:self didFoundDevicesWithNames:names identifiers:IDs];
         }
-    }else{//没有设备
+    }else{
 //        [self.delegate ottoBTManager:self didFoundDeviceWithName:nil identifier:nil];
         if ([self.delegate respondsToSelector:@selector(ottoBTManager:didFoundDevicesWithNames:identifiers:)]) {
         [self.delegate ottoBTManager:self didFoundDevicesWithNames:nil identifiers:nil];
@@ -155,6 +156,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
         YYQLog(@"No Peripheral Found! 没有搜索到设备");
     }
     YYQLog(@"scanTimesUp");
+    
 }
 /**
  *  设置定时启动
@@ -175,29 +177,23 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 
 
 #pragma mark - 设备操纵
-
 /**
  *  连接设备
  */
-- (void)connectWithDeviceID:(NSString*)ID
-{
-    if (self.timer) {
-        [self.cbManager stopScan];
-    }
+- (void)connectWithDeviceID:(NSString*)ID{
     BOOL found = NO;
     for (CBPeripheral *peripheral in self.PeripheralsFound) {
         if ([peripheral.identifier.UUIDString isEqualToString:ID]) {
             [self.cbManager connectPeripheral:peripheral options:nil];
-//            float duration = 3;
-//            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(duration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
-//                if (!self.isConnected) {
-//                    YYQLog(@"连接超时，请再扫描");
-//                    [self.cbManager cancelPeripheralConnection:peripheral];
-//                    if ([self.delegate respondsToSelector:@selector(ottoBTManager:didConnectWithDevicelName:ID:)]) {
-//                        [self.delegate ottoBTManager:self didConnectWithDevicelName:nil ID:nil];
-//                    }
-//                }
-//            });
+            float duration = 1.5;
+            dispatch_after(dispatch_time(DISPATCH_TIME_NOW, (int64_t)(duration * NSEC_PER_SEC)), dispatch_get_main_queue(), ^{
+                if (!self.isConnected) {
+                    YYQLog(@"连接超时，请再扫描");
+                    if ([self.delegate respondsToSelector:@selector(ottoBTManager:didConnectWithDevicelName:ID:)]) {
+                        [self.delegate ottoBTManager:self didConnectWithDevicelName:nil ID:nil];
+                    }
+                }
+            });
             found = YES;
             break;
         }
@@ -208,7 +204,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
             [self.delegate ottoBTManager:nil didConnectWithDevicelName:nil ID:nil];
         }
     }
-}  
+}
 
 /**
  *  断开连接
@@ -246,7 +242,8 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 - (void)getTimeAndBatteryLVOfDevice{
     NSString *str = kCodeStr_GetTime;
     [self writeDataWithString:str Characteristic:self.settingsCh];
-//    [self setAutoBT];
+    
+    [self setAutoBT];
 }
 
 /**
@@ -259,9 +256,10 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     }
     NSString *str;
     str = [kCodeStr_SetTime stringByAppendingString:[NSDate string16WithDate:date]];
-    YYQLog(@"%@",str);
-//    str = @"BE0102FE200f011d0508173A11";
+    YYQLog(@"写入时间代码：%@",str);
+//    str = @"BE0102FE07df060a04080c3110";
     [self writeDataWithString:str Characteristic:self.settingsCh];
+    [self setAutoBT];
 }
 
 /**
@@ -359,7 +357,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     self.history = YES;
     str = [str  stringByAppendingString:[NSDate stringDay16WithDate:date]];
 //    str = @"BE0201FE200F0310";// 0f181a"
-    str  = [str stringByAppendingString:@"00"];
+    str  = [str stringByAppendingString:@"0000"];
         [self writeDataWithString:str Characteristic:self.settingsCh];
     }
 }
@@ -372,16 +370,26 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     NSString *str = kCodeStr_GetStepsH;
        NSString *dateStr = [NSDate stringDay16WithDate:[NSDate date]];
     str = [str stringByAppendingString:dateStr];
-    str = [str stringByAppendingString:@"00"];
-
+    str = [str stringByAppendingString:@"0000"];
+    YYQLog(@"发送str = %@",str);
+//    str = @"BE0201FE200f06090000";
     [self writeDataWithString:str Characteristic:self.settingsCh];
+}
+
+/**
+ *  删除运动数据
+ */
+- (void)deleteDataWithDate:(NSDate*)date
+{
+    
 }
 
 
 
 
 #pragma mark - CBCentralManagerDelegate 蓝牙代理方法
-- (void)centralManagerDidUpdateState:(CBCentralManager *)central{
+- (void)centralManagerDidUpdateState:(CBCentralManager *)central
+{
     NSMutableString* nsmstring=[NSMutableString stringWithString:@"UpdateState:"];
     BOOL isWork=FALSE;
     switch (central.state) {
@@ -402,6 +410,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
             if (self.curPeripheral!=NULL){
                 [central cancelPeripheralConnection:self.curPeripheral];
                 YYQLog(@"设备断开连接");
+                
             }
             break;
         case CBCentralManagerStatePoweredOn:
@@ -417,10 +426,9 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     
 //        [delegate didUpdateState:isWork message:nsmstring getStatus:cManager.state];
 }
-
+/**每搜到一个设备都会掉用这个方法*/
 - (void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI
 {
-    
     if (self.PeripheralsFound.count) { //设备数组里已有设备
         BOOL  added = NO;
         for (CBPeripheral *pre in self.PeripheralsFound) {
@@ -433,6 +441,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
         }
         if (!added){
             YYQLog(@"找到设备：ID = %@",peripheral.identifier.UUIDString);
+
             [self.PeripheralsFound addObject:peripheral];
             if ([self.delegate respondsToSelector:@selector(ottoBTManager:didFoundDeviceWithName:identifier:)]) {
                 [self.delegate ottoBTManager:self didFoundDeviceWithName:peripheral.name identifier:peripheral.identifier.UUIDString];
@@ -447,7 +456,8 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     }
 }
 
-- (void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral{
+- (void)centralManager:(CBCentralManager *)central didConnectPeripheral:(CBPeripheral *)peripheral
+{
     YYQLog(@"设备连接成功！didConnectPeripheral: name = %@ , UUID = %@",peripheral.name,peripheral.identifier.UUIDString);
     peripheral.delegate = self;
     self.curPeripheral = peripheral;
@@ -455,9 +465,6 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     //开始搜索设备提供的可用服务
 //    YYQLog(@"start To Discover Services...");
     [peripheral discoverServices:nil];
-}
-- (void)centralManager:(CBCentralManager *)central didFailToConnectPeripheral:(CBPeripheral *)peripheral error:(NSError *)error{
-    NSLog(@"%@",error.description);
 }
 
 - (void)centralManager:(CBCentralManager *)central didDisconnectPeripheral:(CBPeripheral *)peripheral error:(NSError *)error
@@ -467,6 +474,9 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     _connected = NO;
     self.curPeripheral = nil;
     self.syncing = NO;
+    if ([self.delegate respondsToSelector:@selector(ottoBTManager:didDisconnectWithDevicelName:ID:)]) {
+        [self.delegate ottoBTManager:self didDisconnectWithDevicelName:peripheral.name ID:peripheral.identifier.UUIDString];
+    }
 }
 
 #pragma mark - CBPeripheralDelegate
@@ -490,7 +500,8 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 /**
  *  搜索到可用功能
  */
--(void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error{
+-(void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error
+{
 //    YYQLog(@"did Discover Characteristics For Service ,error = %@ \n service = %@",error,service);
     self.valuesCh = [service.characteristics firstObject];
     self.settingsCh = [service.characteristics lastObject];
@@ -498,10 +509,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     [self.curPeripheral setNotifyValue:YES forCharacteristic:self.valuesCh];
 //    YYQLog(@"搜索到特征 set = %@ , \nValue = %@",self.settingsCh,self.valuesCh);
     //通知代理，连接成功
-    
-    [[NSNotificationCenter defaultCenter]postNotificationName:@"discoverCharacteristics" object:@{@"name":peripheral.name,@"id":peripheral.identifier.UUIDString}];
     if ([self.delegate respondsToSelector:@selector(ottoBTManager:didConnectWithDevicelName:ID:)]) {
-       
         [self.delegate ottoBTManager:self didConnectWithDevicelName:peripheral.name ID:peripheral.identifier.UUIDString];
     }
 }
@@ -510,9 +518,9 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
  *  设备返回数据后调用
  */
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error{
-//    YYQLog(@"didUpdateValueForCharacteristic error = %@\nvalue = %@ ,isNotifying = %i",error,characteristic.value,characteristic.isNotifying);
 
     NSString *returnStr =  [NSData hexadecimalString:characteristic.value];
+    YYQLog(@"返回结果：%@",returnStr);
 
     NSString *headStr = [returnStr substringToIndex:8];
     if ([headStr isEqualToString:kReturnStr_GetStepsH]) {
@@ -523,7 +531,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
             self.history = NO;
         }
     }else if([headStr isEqualToString:kReturnStr_GetTime]){
-        NSString *str = [returnStr substringWithRange:NSMakeRange(8, 18)];
+        NSString *str = [returnStr substringWithRange:NSMakeRange(12, 18)];
         NSDate * dateOfDev = [NSDate dateOfStringFormatyyyyMMddwwzzHHmmss:str];
         YYQLog(@"时间为：%@，本地时间为：%@",dateOfDev,[NSDate date]);
         NSString *bLv = [returnStr substringFromIndex:26];
@@ -533,7 +541,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
             [self.delegate ottoBTManager:self date:dateOfDev batteryLV:bLvInt];
         }
     }else{
-        NSString *stepsGetHeadStr = [returnStr substringToIndex:2];
+        NSString *stepsGetHeadStr = [returnStr substringToIndex:8];
         if ([stepsGetHeadStr isEqualToString:kReturnStr_GetTodayStepsStart]) {
             if (self.isHistory) {
                 YYQLog(@"开始接收计步器历史数据，头数据:%@",returnStr);
@@ -559,28 +567,29 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
                     }
                 }
             }
-        YYQLog(@"返回结果：%@",returnStr);
         }
     }
 }
 
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForDescriptor:(CBDescriptor *)descriptor error:(NSError *)error{
-//    NSLog(@"didUpdateValueForDescriptor error = %@",error);
 }
 
 
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateNotificationStateForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error{
-//    NSLog(@"didUpdateNotificationStateForCharacteristic error = %@",error);
 
 }
 
 #pragma mark - Steps等数据解析方法
+/**
+ *  头数据解析
+ */
 - (void)totalDateAnalysisWithHexString:(NSString*)hexString
 {
 //    200f 011c 0508 0000 020e 0000 0034 0000 0000 00a1
-    NSString *dateStrH = [hexString substringToIndex:8];
-    NSString *stepsStr =[hexString substringWithRange:NSMakeRange(12, 8)];
-    NSString *intensityStr = [hexString substringWithRange:NSMakeRange(20, 8)];
+//    de02 01fe 070f 060a 0000 01b5 0000 004d 0300 6400
+    NSString *dateStrH = [hexString substringWithRange:NSMakeRange(8, 8)];
+    NSString *stepsStr =[hexString substringWithRange:NSMakeRange(16, 8)];
+    NSString *intensityStr = [hexString substringWithRange:NSMakeRange(24, 8)];
     
     NSDate *date = [NSDate dateWithHexDate:dateStrH];
     self.tarDate = date;
@@ -598,45 +607,72 @@ static int intensityOfHour = 0;
 static NSDate *hourDate;
 - (void)stepsAnalysisWithHexString:(NSString*)hexString
 {
-    if ([hexString isEqualToString:@"de0102ed"]) {
-        return;
-    }
-    NSString *timeStrH = [hexString substringToIndex:4];
-    NSString *stepCountStrH = [hexString substringWithRange:NSMakeRange(4, 4)];
-    NSString *intensityH = [hexString substringWithRange:NSMakeRange(8, 4)];
     
-    int steps = (int)strtoul([stepCountStrH UTF8String],0,16);
-    int intensity = (int)strtoul([intensityH UTF8String],0,16);
-   NSDate *date = [NSDate dateWithTimeNote:timeStrH ThatDate:self.tarDate isSecond:NO];
-    if (hexString.length ==16) {
-            //0089 0059 0007 0000
-    }else{
-     //0084 006a 0005 0000 0085 005d 000d 0000
-//        NSString *timeStrE = [hexString substringToIndex:4];
-        NSString *stepCountStrE = [hexString substringWithRange:NSMakeRange(20, 4)];
-        NSString *intensityE = [hexString substringWithRange:NSMakeRange(24, 4)];
-        steps += (int)strtoul([stepCountStrE UTF8String],0,16);
-        intensity += (int)strtoul([intensityE UTF8String],0,16);
+//    b4 0000 00
+    
+    for (int i = 0; i<(hexString.length/8); i ++) {
+        NSString *timeStrH = [hexString substringWithRange:NSMakeRange(i*8, 2)];
+        NSString *stepCountStrH = [hexString substringWithRange:NSMakeRange(2+i*8, 4)];
+        NSString *intensityH = [hexString substringWithRange:NSMakeRange(6+i*8, 2)];
+        
+        int steps = (int)strtoul([stepCountStrH UTF8String],0,16);
+        int intensity = (int)strtoul([intensityH UTF8String],0,16);
+        NSDate *date = [NSDate dateWithTimeNote:timeStrH ThatDate:self.tarDate isSecond:NO];
+
+        if (!hourDate) {
+            hourDate = date;
+        }
+        if (hourDate.hour == date.hour) {
+            stepsOfHour += steps;
+            intensityOfHour += intensity;
+        }else{
+            //结果发送至代理
+                if([self.delegate respondsToSelector:@selector(ottoBTManager:hourDataWithSteps:intensity:fromDate:)]){
+                    [self.delegate ottoBTManager:self hourDataWithSteps:stepsOfHour intensity:intensityOfHour fromDate:hourDate];
+                }
+            stepsOfHour = steps;
+            hourDate = date;
+        }
     }
     
-    //结果发送至代理
-    if([self.delegate respondsToSelector:@selector(ottoBTManager:getSteps:intensity:fromDate:)])
-        [self.delegate ottoBTManager:self getSteps:steps intensity:intensity fromDate:date];
-    if (!hourDate) {
-        hourDate = date;
-        stepsOfHour += steps;
-    }else if (hourDate.hour == date.hour){
-        stepsOfHour += steps;
-    }else{
-        if([self.delegate respondsToSelector:@selector(ottoBTManager:hourDataWithSteps:intensity:fromDate:)]){
-            [self.delegate ottoBTManager:self hourDataWithSteps:stepsOfHour intensity:intensityOfHour fromDate:hourDate];
-        }
-        if([self.delegate respondsToSelector:@selector(ottoBTManager:getSteps:intensity:fromDate:)]){
-            [self.delegate ottoBTManager:self getSteps:steps intensity:intensity fromDate:date];
-        }
-        stepsOfHour = steps;
-        hourDate = date;
-    }
+    
+//    NSString *timeStrH = [hexString substringToIndex:2];
+//    NSString *stepCountStrH = [hexString substringWithRange:NSMakeRange(2, 4)];
+//    NSString *intensityH = [hexString substringWithRange:NSMakeRange(6, 2)];
+//    
+//    int steps = (int)strtoul([stepCountStrH UTF8String],0,16);
+//    int intensity = (int)strtoul([intensityH UTF8String],0,16);
+//   NSDate *date = [NSDate dateWithTimeNote:timeStrH ThatDate:self.tarDate isSecond:NO];
+//    if (hexString.length ==16) {
+//
+//    }else{
+//     //0084 006a 0005 0000 0085 005d 000d 0000
+////        NSString *timeStrE = [hexString substringToIndex:4];
+//        NSString *stepCountStrE = [hexString substringWithRange:NSMakeRange(20, 4)];
+//        NSString *intensityE = [hexString substringWithRange:NSMakeRange(24, 4)];
+//        steps += (int)strtoul([stepCountStrE UTF8String],0,16);
+//        intensity += (int)strtoul([intensityE UTF8String],0,16);
+//    }
+//    
+//    //结果发送至代理
+//    if([self.delegate respondsToSelector:@selector(ottoBTManager:getSteps:intensity:fromDate:)]){
+//        [self.delegate ottoBTManager:self getSteps:steps intensity:intensity fromDate:date];
+//    }
+//    if (!hourDate) {
+//        hourDate = date;
+//        stepsOfHour += steps;
+//    }else if (hourDate.hour == date.hour){
+//        stepsOfHour += steps;
+//    }else{
+//        if([self.delegate respondsToSelector:@selector(ottoBTManager:hourDataWithSteps:intensity:fromDate:)]){
+//            [self.delegate ottoBTManager:self hourDataWithSteps:stepsOfHour intensity:intensityOfHour fromDate:hourDate];
+//        }
+//        if([self.delegate respondsToSelector:@selector(ottoBTManager:getSteps:intensity:fromDate:)]){
+//            [self.delegate ottoBTManager:self getSteps:steps intensity:intensity fromDate:date];
+//        }
+//        stepsOfHour = steps;
+//        hourDate = date;
+//    }
 }
 
 
