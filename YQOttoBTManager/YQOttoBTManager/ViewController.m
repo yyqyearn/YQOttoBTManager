@@ -34,7 +34,7 @@
     [self.manager connectWithDeviceID:self.deviceID];
 }
 - (IBAction)readDate:(id)sender {
-    [self.manager getTimeAndBatteryLVOfDevice];
+    [self.manager getTimeOfDevice];
 }
 - (IBAction)setDate:(id)sender {
     [self.manager setTimeOfDeviceWithDate:nil];
@@ -51,10 +51,13 @@
 
 - (IBAction)getData:(id)sender {
 //    [self.manager RestoreFactory];
-    [self.manager setPetNameWithName:@"PingPing"];
-    [self.manager setMastNameWithName:@"yyq Yearn"];
-    [self.manager setPhoneNumberWithNumber:@"13085730958"];
-    [self.manager getStepsWithDate:[NSDate date]];
+//    [self.manager setPetNameWithName:@"PingPing"];
+//    [self.manager setMastNameWithName:@"yyq Yearn"];
+//    [self.manager setPhoneNumberWithNumber:@"13085730958"];
+//    [self.manager getStepsWithDate:[NSDate date]];
+    
+    [self.manager deleteDataWithDate:[NSDate date]];
+    
 //    [self.manager getStepsToday];
 
 }
@@ -77,9 +80,9 @@
 {
     NSLog(@"客户端获得数据：date = %@, steps = %i , intensity = %i",date,steps,intensity);
 }
-- (void)ottoBTManager:(YQOttoBTManager *)manager totalDataWithTotalSteps:(int)totalSteps totalIntensity:(int)totalIntensity date:(NSDate *)date
+- (void)ottoBTManager:(YQOttoBTManager *)manager totalDataWithTotalSteps:(int)totalSteps totalIntensity:(int)totalIntensity date:(NSDate *)date btLV:(int)btLV
 {
-    NSLog(@"客户端获得信息，今天是%@ ，totalSteps = %i , totalIntensity = %i ",date,totalSteps,totalIntensity);
+    NSLog(@"客户端获得信息，今天是%@ ，totalSteps = %i , totalIntensity = %i ,电池电量 = %i",date,totalSteps,totalIntensity,btLV);
 }
 - (void)ottoBTManager:(YQOttoBTManager *)manager hourDataWithSteps:(int)steps intensity:(int)intensity fromDate:(NSDate *)date{
     NSLog(@"客户端获得数据：date = %@, steps = %i , intensity = %i",date,steps,intensity);

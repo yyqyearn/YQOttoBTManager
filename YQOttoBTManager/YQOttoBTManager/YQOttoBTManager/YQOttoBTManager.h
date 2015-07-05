@@ -54,7 +54,7 @@
 /**
  *  获得设备时间
  */
-- (void)getTimeAndBatteryLVOfDevice;
+- (void)getTimeOfDevice;
 
 /**
  *  写入设备时间
@@ -128,20 +128,19 @@
  */
 - (void)ottoBTManager:(YQOttoBTManager *)manager didDisconnectWithDevicelName:(NSString*)name ID:(NSString *)ID;
 /**
- *  设备获得时间和电量
+ *  设备获得时间
  *  @param date           当天日期
- *  @param batteryLV      电池剩余百分比
  */
-- (void)ottoBTManager:(YQOttoBTManager *)manager date:(NSDate *)date batteryLV:(int)batteryLV;
+- (void)ottoBTManager:(YQOttoBTManager *)manager date:(NSDate *)date;
 
 /**
  *  设备开始同步当天数据
  *  @param totalSteps     当天总步数
  *  @param totalIntensity 当天总强度
  *  @param date           当天日期
+ *  @param btLV           剩余电量百分比
  */
-- (void)ottoBTManager:(YQOttoBTManager *)manager totalDataWithTotalSteps:(int)totalSteps totalIntensity:(int)totalIntensity date:(NSDate *)date;
-
+- (void)ottoBTManager:(YQOttoBTManager *)manager totalDataWithTotalSteps:(int)totalSteps totalIntensity:(int)totalIntensity date:(NSDate *)date btLV:(int)btLV;
 /**
  *  设备获取计步器数据
  *  @param steps     计步器步数

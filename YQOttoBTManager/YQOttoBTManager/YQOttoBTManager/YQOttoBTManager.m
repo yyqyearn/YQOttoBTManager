@@ -17,31 +17,34 @@
 #import "YQOttoBTManager.h"
 #import "NSData&NSDate+yyq.h"
 /** 指令集 **/
-static NSString *kCodeStr_Set12Hours = @"BE0101FE";
-static NSString *kCodeStr_GetTime = @"BE0102ED";
-static NSString *kCodeStr_SetTime = @"BE0102FE";
-static NSString *kCodeStr_SetBTWork = @"BE0106FE";
-static NSString *kCodeStr_RestoreFactory =@"BE010DED";
-static NSString *kCodeStr_SetPetName = @"BE010EFE01";
-static NSString *kCodeStr_SetMasterName = @"BE0112FE";
-static NSString *kCodeStr_SetPhoneNumber = @"BE0113FE";
-static NSString *kCodeStr_GetStepsH = @"BE0201FE";
-static NSString *kCodeStr_GetStepsT = @"BE0203FE";
+static NSString *kCodeStr_Set12Hours = @"BE0101FE";//1.1 设置12/24小时制，本地时区日期时间，有参数
+static NSString *kCodeStr_GetTime = @"BE0102ED";//1.7 请求计步器发送日期时间，无参数
+static NSString *kCodeStr_SetTime = @"BE0102FE";//1.3 发送日期时间时区给计步器，有参数
+static NSString *kCodeStr_SetBTWork = @"BE0106FE";//1.15 手机发送设备的定时启动，有参数
+static NSString *kCodeStr_RestoreFactory =@"BE010DED";//1.33 手机发送恢复出厂设置，无参数
+static NSString *kCodeStr_SetPetName = @"BE010EFE01";//1.35 发送宠物名称，有参数
+static NSString *kCodeStr_SetMasterName = @"BE0112FE";//1.45 发送联系人名称，有参数
+static NSString *kCodeStr_SetPhoneNumber = @"BE0113FE";//1.47 发送电话号码，有参数
+static NSString *kCodeStr_GetStepsH = @"BE0201FE";//2.1 请求计步器传输数据xx日期xx时间节点，单位为一天，有参数
+//static NSString *kCodeStr_GetStepsT = @"BE0203FE";
+
+static NSString *kCodeStr_DeleteStepsH = @"BE0202FE";//2.4 请求删除某天运动数据，有参数
+
 
 /** 返回指令集 **/
-static NSString *kReturnStr_Set12Hours = @"de0101ed";
-static NSString *kReturnStr_GetTime = @"de0102fb";
-static NSString *kReturnStr_SetTime = @"de0102ed";
-static NSString *kReturnStr_SetBTWork = @"de0106ed";
-static NSString *kReturnStr_RestoreFactory =@"de010ded";
-static NSString *kReturnStr_SetPetName = @"de010eed";
-static NSString *kReturnStr_SetMasterName = @"de0112ed";
-static NSString *kReturnStr_SetPhoneNumber = @"de0113ed";
+static NSString *kReturnStr_Set12Hours = @"de0101ed";//1.2 计步器收到12/24小时制后返回，无参数
+static NSString *kReturnStr_GetTime = @"de0102fb"; //1.8 计步器发送日期时间到手机，有参数
+static NSString *kReturnStr_SetTime = @"de0102ed";//1.4 计步器收到日期时间时区后返回，无参数
+static NSString *kReturnStr_SetBTWork = @"de0106ed";//1.16 计步器收到定时启动后返回，无参数
+static NSString *kReturnStr_RestoreFactory =@"de010ded"; //1.34 收到恢复出厂设置后返回，无参数
+static NSString *kReturnStr_SetPetName = @"de010eed";//1.36 收到宠物名称，无参数
+static NSString *kReturnStr_SetMasterName = @"de0112ed";//1.45 收到联系人名称，无参数
+static NSString *kReturnStr_SetPhoneNumber = @"de0113ed";//1.47 收到电话号码，无参数
 
-static NSString *kReturnStr_GetTodayStepsStart = @"de0201fe";
-static NSString *kReturnStr_GetStepsH = @"de0201ed";
-static NSString *kReturnStr_GetNoStepsH = @"de020106";
-
+static NSString *kReturnStr_GetStepsStart = @"de0201fe";//2.3 开始传送数据的第一个包头数据
+static NSString *kReturnStr_GetStepsH = @"de0201ed";//2.2 当天有数据：发完数据后，以此结束，无参数
+static NSString *kReturnStr_GetNoStepsH = @"de020106";//2.2 当天无数据：直接以此结束，无参数
+static NSString *kReturnStr_DeleteStepsH = @"de0202ed";//2.5 删除数据成功，无参数
 
 static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 
@@ -111,9 +114,9 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 #pragma mark - 私有方法
 - (void)setupVersionAndArrays
 {
-    _returnCodeArray = @[kReturnStr_RestoreFactory,kReturnStr_SetBTWork,kReturnStr_SetMasterName,kReturnStr_SetPetName,kReturnStr_SetPhoneNumber,kReturnStr_SetTime,kReturnStr_Set12Hours];
-    _logArray = @[@"返回出厂设置成功",@"设置启动时间成功",@"设置主人名字成功",@"设置宠物名字成功",@"设置手机号码成功",@"设置时间成功",@"设置12/24小时制成功"];
-    _version = 1.0;
+    _returnCodeArray = @[kReturnStr_RestoreFactory,kReturnStr_SetBTWork,kReturnStr_SetMasterName,kReturnStr_SetPetName,kReturnStr_SetPhoneNumber,kReturnStr_SetTime,kReturnStr_Set12Hours,kReturnStr_DeleteStepsH];
+    _logArray = @[@"返回出厂设置成功",@"设置启动时间成功",@"设置主人名字成功",@"设置宠物名字成功",@"设置手机号码成功",@"设置时间成功",@"设置12/24小时制成功",@"删除数据成功"];
+    _version = 0705;
 }
 
 - (void)writeDataWithString:(NSString*)string Characteristic:(CBCharacteristic*)characteristic
@@ -126,7 +129,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     if (self.curPeripheral && self.settingsCh) {
         [self.curPeripheral writeValue:[NSData dataWithHexstring:string] forCharacteristic:characteristic type:CBCharacteristicWriteWithResponse];
     }else{
-        YYQLog(@"没有连接到设备，设置个毛啊， =,=!!");
+        YYQLog(@"没有连接到设备，无法设置， =,=!!");
     }
 }
 
@@ -149,9 +152,9 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
             [self.delegate ottoBTManager:self didFoundDevicesWithNames:names identifiers:IDs];
         }
     }else{
-//        [self.delegate ottoBTManager:self didFoundDeviceWithName:nil identifier:nil];
+        //        [self.delegate ottoBTManager:self didFoundDeviceWithName:nil identifier:nil];
         if ([self.delegate respondsToSelector:@selector(ottoBTManager:didFoundDevicesWithNames:identifiers:)]) {
-        [self.delegate ottoBTManager:self didFoundDevicesWithNames:nil identifiers:nil];
+            [self.delegate ottoBTManager:self didFoundDevicesWithNames:nil identifiers:nil];
         }
         YYQLog(@"No Peripheral Found! 没有搜索到设备");
     }
@@ -219,10 +222,10 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
  */
 - (void)stopScanDevices
 {
-//    [self scanTimeout:self.timer];
+    //    [self scanTimeout:self.timer];
     [self.cbManager stopScan];
-//    [self.PeripheralsFound removeAllObjects];
-
+    //    [self.PeripheralsFound removeAllObjects];
+    
 }
 
 /**
@@ -239,7 +242,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 /**
  *  获得时间
  */
-- (void)getTimeAndBatteryLVOfDevice{
+- (void)getTimeOfDevice{
     NSString *str = kCodeStr_GetTime;
     [self writeDataWithString:str Characteristic:self.settingsCh];
     
@@ -257,7 +260,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     NSString *str;
     str = [kCodeStr_SetTime stringByAppendingString:[NSDate string16WithDate:date]];
     YYQLog(@"写入时间代码：%@",str);
-//    str = @"BE0102FE07df060a04080c3110";
+    //    str = @"BE0102FE07df060a04080c3110";
     [self writeDataWithString:str Characteristic:self.settingsCh];
     [self setAutoBT];
 }
@@ -283,12 +286,12 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     NSString *str = kCodeStr_SetPetName;
     for (int i = 0; i<name.length; i++) {
         int fName = [name characterAtIndex:i];
-    NSString * ASCIIstr = [NSString stringWithFormat:@"%02x",fName];
-       str = [str stringByAppendingString:ASCIIstr];
+        NSString * ASCIIstr = [NSString stringWithFormat:@"%02x",fName];
+        str = [str stringByAppendingString:ASCIIstr];
     }
     for (int j = 0; j<40;j++ ) {
         if (str.length<40) {
-       str = [str stringByAppendingString:@"00"];
+            str = [str stringByAppendingString:@"00"];
         }else{
             break;
         }
@@ -347,32 +350,29 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     [self writeDataWithString:str Characteristic:self.settingsCh];
     YYQLog(@"%@",str);
 }
-
+/** 获得历史数据 */
 - (void)getStepsWithDate:(NSDate*)date;{
-    if ([date isSameDayWithDate:date]) {
-        [self getStepsToday];
-    }else{
+
         self.historyDate = date;
-    NSString *str = kCodeStr_GetStepsH;
-    self.history = YES;
-    str = [str  stringByAppendingString:[NSDate stringDay16WithDate:date]];
-//    str = @"BE0201FE200F0310";// 0f181a"
-    str  = [str stringByAppendingString:@"0000"];
+        NSString *str = kCodeStr_GetStepsH;
+//        self.history = YES; 历史数据解析方式已经废弃
+        str = [str  stringByAppendingString:[NSDate stringDay16WithDate:date]];
+        str  = [str stringByAppendingString:@"0000"];
+    YYQLog(@"发送历史请求 = %@ ",str );
         [self writeDataWithString:str Characteristic:self.settingsCh];
-    }
 }
 /**
  *  当天数据
  */
 - (void)getStepsToday
 {
-//    NSString *str = @"BE0203FE0000";
+    //    NSString *str = @"BE0203FE0000";
     NSString *str = kCodeStr_GetStepsH;
-       NSString *dateStr = [NSDate stringDay16WithDate:[NSDate date]];
+    NSString *dateStr = [NSDate stringDay16WithDate:[NSDate date]];
     str = [str stringByAppendingString:dateStr];
     str = [str stringByAppendingString:@"0000"];
+//        str = @"BE0201FE07df01020000";
     YYQLog(@"发送str = %@",str);
-//    str = @"BE0201FE200f06090000";
     [self writeDataWithString:str Characteristic:self.settingsCh];
 }
 
@@ -381,7 +381,16 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
  */
 - (void)deleteDataWithDate:(NSDate*)date
 {
-    
+    NSString *str = kCodeStr_DeleteStepsH;
+    NSString * dateStr = [NSString stringWithFormat:@"0%02lx",(unsigned long)date.year];
+    dateStr =  [dateStr stringByAppendingString:[NSString stringWithFormat:@"%02lx",(unsigned long)date.month]];
+    dateStr =  [dateStr stringByAppendingString:[NSString stringWithFormat:@"%02lx",(unsigned long)date.day]];
+
+    str = [str stringByAppendingString:dateStr];
+    str = [str stringByAppendingString:@"0000"];
+//    str = @"BE0202FE07df07050000";
+    [self writeDataWithString:str Characteristic:self.settingsCh];
+
 }
 
 
@@ -424,7 +433,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     YYQLog(@"centralManagerDidUpdateState ,%@",nsmstring);
     
     
-//        [delegate didUpdateState:isWork message:nsmstring getStatus:cManager.state];
+    //        [delegate didUpdateState:isWork message:nsmstring getStatus:cManager.state];
 }
 /**每搜到一个设备都会掉用这个方法*/
 - (void)centralManager:(CBCentralManager *)central didDiscoverPeripheral:(CBPeripheral *)peripheral advertisementData:(NSDictionary *)advertisementData RSSI:(NSNumber *)RSSI
@@ -441,7 +450,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
         }
         if (!added){
             YYQLog(@"找到设备：ID = %@",peripheral.identifier.UUIDString);
-
+            
             [self.PeripheralsFound addObject:peripheral];
             if ([self.delegate respondsToSelector:@selector(ottoBTManager:didFoundDeviceWithName:identifier:)]) {
                 [self.delegate ottoBTManager:self didFoundDeviceWithName:peripheral.name identifier:peripheral.identifier.UUIDString];
@@ -463,7 +472,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     self.curPeripheral = peripheral;
     _connected = YES;
     //开始搜索设备提供的可用服务
-//    YYQLog(@"start To Discover Services...");
+    //    YYQLog(@"start To Discover Services...");
     [peripheral discoverServices:nil];
 }
 
@@ -489,8 +498,8 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
         YYQLog(@"Error discovering services: %@", [error localizedDescription]);
     }else{
         for (CBService *p in peripheral.services){
-//            YYQLog(@"Service found with UUID: %@\n", p.UUID);
-//            YYQLog(@"Start To Discover Characteristics...");
+            //            YYQLog(@"Service found with UUID: %@\n", p.UUID);
+            //            YYQLog(@"Start To Discover Characteristics...");
             [peripheral discoverCharacteristics:nil forService:p];
         }
     }
@@ -502,12 +511,12 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
  */
 -(void)peripheral:(CBPeripheral *)peripheral didDiscoverCharacteristicsForService:(CBService *)service error:(NSError *)error
 {
-//    YYQLog(@"did Discover Characteristics For Service ,error = %@ \n service = %@",error,service);
+    //    YYQLog(@"did Discover Characteristics For Service ,error = %@ \n service = %@",error,service);
     self.valuesCh = [service.characteristics firstObject];
     self.settingsCh = [service.characteristics lastObject];
     [self.curPeripheral setNotifyValue:YES forCharacteristic:self.settingsCh];
     [self.curPeripheral setNotifyValue:YES forCharacteristic:self.valuesCh];
-//    YYQLog(@"搜索到特征 set = %@ , \nValue = %@",self.settingsCh,self.valuesCh);
+    //    YYQLog(@"搜索到特征 set = %@ , \nValue = %@",self.settingsCh,self.valuesCh);
     //通知代理，连接成功
     if ([self.delegate respondsToSelector:@selector(ottoBTManager:didConnectWithDevicelName:ID:)]) {
         [self.delegate ottoBTManager:self didConnectWithDevicelName:peripheral.name ID:peripheral.identifier.UUIDString];
@@ -518,10 +527,10 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
  *  设备返回数据后调用
  */
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateValueForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error{
-
+    
     NSString *returnStr =  [NSData hexadecimalString:characteristic.value];
-    YYQLog(@"返回结果：%@",returnStr);
-
+//    YYQLog(@"返回结果：%@",returnStr);
+    
     NSString *headStr = [returnStr substringToIndex:8];
     if ([headStr isEqualToString:kReturnStr_GetStepsH]) {
         YYQLog(@"计步器同步结束 返回结果：%@",returnStr);
@@ -533,21 +542,22 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     }else if([headStr isEqualToString:kReturnStr_GetTime]){
         NSString *str = [returnStr substringWithRange:NSMakeRange(12, 18)];
         NSDate * dateOfDev = [NSDate dateOfStringFormatyyyyMMddwwzzHHmmss:str];
+        
+        
         YYQLog(@"时间为：%@，本地时间为：%@",dateOfDev,[NSDate date]);
-        NSString *bLv = [returnStr substringFromIndex:26];
-        int bLvInt = (int)strtoul([bLv UTF8String],0,16);
-        YYQLog(@"电量为%i%%",bLvInt);
-        if ([self.delegate respondsToSelector:@selector(ottoBTManager:date:batteryLV:)]) {
-            [self.delegate ottoBTManager:self date:dateOfDev batteryLV:bLvInt];
+
+#warning 厂家已经更新电量功能，移动到别处
+        if ([self.delegate respondsToSelector:@selector(ottoBTManager:date:)]) {
+            [self.delegate ottoBTManager:self date:dateOfDev];
         }
     }else{
         NSString *stepsGetHeadStr = [returnStr substringToIndex:8];
-        if ([stepsGetHeadStr isEqualToString:kReturnStr_GetTodayStepsStart]) {
+        if ([stepsGetHeadStr isEqualToString:kReturnStr_GetStepsStart]) {
             if (self.isHistory) {
                 YYQLog(@"开始接收计步器历史数据，头数据:%@",returnStr);
                 [self addStepsStr:returnStr];
             }else{
-                YYQLog(@"开始接收计步器当天数据，头数据:%@",returnStr);
+                YYQLog(@"开始接收计步器数据，头数据:%@",returnStr);
                 [self totalDateAnalysisWithHexString:returnStr];
             }
             self.syncing = YES;
@@ -557,7 +567,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
                     YYQLog(@"开始接收计步器历史数据包:%@",returnStr);
                     [self addStepsStr:returnStr];
                 }else{
-                    YYQLog(@"开始接收计步器当天数据包:%@",returnStr);
+                    YYQLog(@"开始接收计步器数据包:%@",returnStr);
                     [self stepsAnalysisWithHexString:returnStr];
                 }
             }else{
@@ -576,7 +586,7 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
 
 
 - (void)peripheral:(CBPeripheral *)peripheral didUpdateNotificationStateForCharacteristic:(CBCharacteristic *)characteristic error:(NSError *)error{
-
+    
 }
 
 #pragma mark - Steps等数据解析方法
@@ -585,8 +595,9 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
  */
 - (void)totalDateAnalysisWithHexString:(NSString*)hexString
 {
-//    200f 011c 0508 0000 020e 0000 0034 0000 0000 00a1
-//    de02 01fe 070f 060a 0000 01b5 0000 004d 0300 6400
+    //    200f 011c 0508 0000 020e 0000 0034 0000 0000 00a1 已经废弃
+    //    de02 01fe 070f 060a 0000 01b5 0000 004d 0300 6400
+    //    de02 01fe 07df 0705 0000 0000 0000 0000 034c 6400
     NSString *dateStrH = [hexString substringWithRange:NSMakeRange(8, 8)];
     NSString *stepsStr =[hexString substringWithRange:NSMakeRange(16, 8)];
     NSString *intensityStr = [hexString substringWithRange:NSMakeRange(24, 8)];
@@ -595,10 +606,15 @@ static NSString * kServiceUUIDs = @"6E400001-B5A3-F393-E0A9-E50E24DCCA9E";
     self.tarDate = date;
     int steps = (int)strtoul([stepsStr UTF8String],0,16);
     int intensity = (int)strtoul([intensityStr UTF8String],0,16);
-
+    
+    
+    NSString *bLv = [hexString substringWithRange:NSMakeRange(36, 2)];
+    int bLvInt = (int)strtoul([bLv UTF8String],0,16);
+    YYQLog(@"电量为%i%%",bLvInt);
+    
     //结果发送至代理
-    if ([self.delegate respondsToSelector:@selector(ottoBTManager:totalDataWithTotalSteps:totalIntensity:date:)]) {
-        [self.delegate ottoBTManager:self totalDataWithTotalSteps:steps totalIntensity:intensity date:date];
+    if ([self.delegate respondsToSelector:@selector(ottoBTManager:totalDataWithTotalSteps:totalIntensity:date:btLV:)]) {
+        [self.delegate ottoBTManager:self totalDataWithTotalSteps:steps totalIntensity:intensity date:date btLV:bLvInt];
     }
 }
 
@@ -608,7 +624,7 @@ static NSDate *hourDate;
 - (void)stepsAnalysisWithHexString:(NSString*)hexString
 {
     
-//    b4 0000 00
+    //    b4 0000 00
     
     for (int i = 0; i<(hexString.length/8); i ++) {
         NSString *timeStrH = [hexString substringWithRange:NSMakeRange(i*8, 2)];
@@ -618,7 +634,7 @@ static NSDate *hourDate;
         int steps = (int)strtoul([stepCountStrH UTF8String],0,16);
         int intensity = (int)strtoul([intensityH UTF8String],0,16);
         NSDate *date = [NSDate dateWithTimeNote:timeStrH ThatDate:self.tarDate isSecond:NO];
-
+        
         if (!hourDate) {
             hourDate = date;
         }
@@ -627,52 +643,16 @@ static NSDate *hourDate;
             intensityOfHour += intensity;
         }else{
             //结果发送至代理
-                if([self.delegate respondsToSelector:@selector(ottoBTManager:hourDataWithSteps:intensity:fromDate:)]){
-                    [self.delegate ottoBTManager:self hourDataWithSteps:stepsOfHour intensity:intensityOfHour fromDate:hourDate];
-                }
+            if([self.delegate respondsToSelector:@selector(ottoBTManager:hourDataWithSteps:intensity:fromDate:)]){
+                [self.delegate ottoBTManager:self hourDataWithSteps:stepsOfHour intensity:intensityOfHour fromDate:hourDate];
+            }
             stepsOfHour = steps;
             hourDate = date;
         }
     }
     
     
-//    NSString *timeStrH = [hexString substringToIndex:2];
-//    NSString *stepCountStrH = [hexString substringWithRange:NSMakeRange(2, 4)];
-//    NSString *intensityH = [hexString substringWithRange:NSMakeRange(6, 2)];
-//    
-//    int steps = (int)strtoul([stepCountStrH UTF8String],0,16);
-//    int intensity = (int)strtoul([intensityH UTF8String],0,16);
-//   NSDate *date = [NSDate dateWithTimeNote:timeStrH ThatDate:self.tarDate isSecond:NO];
-//    if (hexString.length ==16) {
-//
-//    }else{
-//     //0084 006a 0005 0000 0085 005d 000d 0000
-////        NSString *timeStrE = [hexString substringToIndex:4];
-//        NSString *stepCountStrE = [hexString substringWithRange:NSMakeRange(20, 4)];
-//        NSString *intensityE = [hexString substringWithRange:NSMakeRange(24, 4)];
-//        steps += (int)strtoul([stepCountStrE UTF8String],0,16);
-//        intensity += (int)strtoul([intensityE UTF8String],0,16);
-//    }
-//    
-//    //结果发送至代理
-//    if([self.delegate respondsToSelector:@selector(ottoBTManager:getSteps:intensity:fromDate:)]){
-//        [self.delegate ottoBTManager:self getSteps:steps intensity:intensity fromDate:date];
-//    }
-//    if (!hourDate) {
-//        hourDate = date;
-//        stepsOfHour += steps;
-//    }else if (hourDate.hour == date.hour){
-//        stepsOfHour += steps;
-//    }else{
-//        if([self.delegate respondsToSelector:@selector(ottoBTManager:hourDataWithSteps:intensity:fromDate:)]){
-//            [self.delegate ottoBTManager:self hourDataWithSteps:stepsOfHour intensity:intensityOfHour fromDate:hourDate];
-//        }
-//        if([self.delegate respondsToSelector:@selector(ottoBTManager:getSteps:intensity:fromDate:)]){
-//            [self.delegate ottoBTManager:self getSteps:steps intensity:intensity fromDate:date];
-//        }
-//        stepsOfHour = steps;
-//        hourDate = date;
-//    }
+
 }
 
 
@@ -687,18 +667,18 @@ static NSDate *hourDate;
 - (void)sendHistorySteps
 {
     NSDate *date;
-
-//    NSDate *stepsDate;
+    
+    //    NSDate *stepsDate;
     int steps = 0;
     int intensity = 0;
-//    200f 0302 0058 0016 f581 c81a f680 0000 ff80 0000
-//    0480 0c00 0580 0000 1f80 0000 eb80 8e05 ec80 6a03
-//    ed80 4903 ffff ffff ffff ffff ffff ffff ffff ffff
+    //    200f 0302 0058 0016 f581 c81a f680 0000 ff80 0000
+    //    0480 0c00 0580 0000 1f80 0000 eb80 8e05 ec80 6a03
+    //    ed80 4903 ffff ffff ffff ffff ffff ffff ffff ffff
     int count = (int)self.historyStepsStr.length/8;
     if (count==0) {
         YYQLog(@"该天没有历史数据");
         if ([self.delegate respondsToSelector:@selector(ottoBTManager:hourDataWithSteps:intensity:fromDate:)]) {
-        
+            
             [self.delegate ottoBTManager:self hourDataWithSteps:0 intensity:0 fromDate:self.historyDate];
         }
     }
@@ -714,8 +694,8 @@ static NSDate *hourDate;
             //b980 ff1f
             NSString *str = [self.historyStepsStr substringWithRange:NSMakeRange(8*i, 8)];
             NSString *timeNote = [str substringToIndex:2];
-
-
+            
+            
             NSDate *timeNoteDate = [NSDate dateWithTimeNote:timeNote ThatDate:date isSecond:secondTime];//dateWithTimeNote:timeNote ThatDate:date];
             if (date.hour == timeNoteDate.hour) {
                 NSString *stepsStr = [str substringWithRange:NSMakeRange(3, 3)];
